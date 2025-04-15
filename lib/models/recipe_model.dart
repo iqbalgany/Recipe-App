@@ -31,15 +31,4 @@ class RecipeModel {
         updatedAt: DateTime.parse(json["updated_at"]),
         category: CategoryModel.fromJson(json["category"]),
       );
-
-  // Map<String, dynamic> toJson() => {
-  //   "id": id,
-  //   "title": title,
-  //   "description": description,
-  //   "image": image,
-  //   "category_id": categoryId,
-  //   "created_at": createdAt.toIso8601String(),
-  //   "updated_at": updatedAt.toIso8601String(),
-  //   // "category": category.toJson(),
-  // };
 }

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:recipe_app/helpers/dio_client.dart';
+import 'package:recipe_app/models/category_model.dart';
 import 'package:recipe_app/models/recipe_model.dart';
 
 class RecipeService {
@@ -23,27 +26,49 @@ class RecipeService {
     }
   }
 
-  // Future<void> createRecipe({
-  //   required String title,
-  //   required String description,
-  //   required int categoryId,
-  //   required File imageFile,
-  // }) async {
-  //   try {
-  //     final formData = FormData.fromMap({
-  //       'title': title,
-  //       'description': description,
-  //       'category_id': categoryId.toString(),
-  //       'image': await MultipartFile.fromFile(imageFile.path,
-  //           filename: imageFile.path.split('/').last),
-  //     });
+  Future<void> createRecipe({
+    required String title,
+    required String description,
+    required int categoryId,
+    required File imageFile,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'title': title,
+        'description': description,
+        'category_id': categoryId.toString(),
+        'image': await MultipartFile.fromFile(imageFile.path,
+            filename: imageFile.path.split('/').last),
+      });
 
-  //     await DioClient.instance.post(
-  //       '/recipes',
-  //       data: formData,
-  //     );
-  //   } catch (e) {
-  //     rethrow;
-  //   }
-  // }
+      await DioClient.instance.post(
+        '/recipes',
+        data: formData,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<CategoryModel>> getCategories() async {
+    try {
+      Response response = await DioClient.instance.get('/categories');
+
+      List<CategoryModel> categories = (response.data as List)
+          .map((json) => CategoryModel.fromJson(json))
+          .toList();
+
+      return categories;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteRecipe(int id) async {
+    try {
+      await DioClient.instance.delete('/recipes/$id');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal menghapus resep');
+    }
+  }
 }
