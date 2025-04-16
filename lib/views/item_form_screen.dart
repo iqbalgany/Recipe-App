@@ -3,10 +3,23 @@ import 'package:get/get.dart';
 import 'package:recipe_app/controllers/recipe_controller.dart';
 import 'package:recipe_app/widgets/custom_text_field.dart';
 
-class ItemFormScreen extends StatelessWidget {
+class ItemFormScreen extends StatefulWidget {
   ItemFormScreen({super.key});
 
+  @override
+  State<ItemFormScreen> createState() => _ItemFormScreenState();
+}
+
+class _ItemFormScreenState extends State<ItemFormScreen> {
   final RecipeController controller = Get.put(RecipeController());
+
+  @override
+  void initState() {
+    super.initState();
+    if (controller.selectedRecipe.value == null) {
+      controller.resetForm();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,59 +33,65 @@ class ItemFormScreen extends StatelessWidget {
                   children: [
                     SizedBox(height: 90),
                     GestureDetector(
-                        onTap: controller.pickImage,
-                        child: Obx(
-                          () {
-                            final image = controller.imageFile.value;
-                            return Container(
-                              width: MediaQuery.sizeOf(context).width,
-                              height: 250,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Color(0xffD0DBEA),
-                                ),
-                                image: image != null
-                                    ? DecorationImage(
-                                        image: FileImage(image),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
+                      onTap: controller.pickImage,
+                      child: Obx(
+                        () {
+                          final image = controller.imageFile.value;
+                          final imageUrl =
+                              controller.selectedRecipe.value!.image;
+                          return Container(
+                            width: MediaQuery.sizeOf(context).width,
+                            height: 250,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Color(0xffD0DBEA),
                               ),
-                              child: image == null
-                                  ? Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.image_rounded,
-                                          size: 53,
+                              image: image != null
+                                  ? DecorationImage(
+                                      image: FileImage(image),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : (imageUrl.isNotEmpty
+                                      ? DecorationImage(
+                                          image: NetworkImage(imageUrl),
+                                          fit: BoxFit.cover)
+                                      : null),
+                            ),
+                            child: image == null && imageUrl.isEmpty
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.image_rounded,
+                                        size: 53,
+                                        color: Color(0xff9FA5C0),
+                                      ),
+                                      SizedBox(height: 21.33),
+                                      Text(
+                                        'Add Cover Photo',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          color: Color(0xff3E5481),
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        '(up to 12 Mb)',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 12,
                                           color: Color(0xff9FA5C0),
                                         ),
-                                        SizedBox(height: 21.33),
-                                        Text(
-                                          'Add Cover Photo',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                            color: Color(0xff3E5481),
-                                          ),
-                                        ),
-                                        SizedBox(height: 8),
-                                        Text(
-                                          '(up to 12 Mb)',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 12,
-                                            color: Color(0xff9FA5C0),
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : null,
-                            );
-                          },
-                        )),
+                                      ),
+                                    ],
+                                  )
+                                : null,
+                          );
+                        },
+                      ),
+                    ),
                     SizedBox(height: 24),
                     CustomTextField(
                         label: 'Food Name',
@@ -101,6 +120,7 @@ class ItemFormScreen extends StatelessWidget {
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton(
+                              padding: EdgeInsets.symmetric(horizontal: 24),
                               isExpanded: true,
                               items: controller.categories.map(
                                 (category) {
@@ -131,7 +151,13 @@ class ItemFormScreen extends StatelessWidget {
                     ),
                     Spacer(),
                     GestureDetector(
-                      onTap: controller.createRecipe,
+                      onTap: () {
+                        if (controller.selectedRecipe.value == null) {
+                          controller.createRecipe();
+                        } else {
+                          controller.updateRecipe();
+                        }
+                      },
                       child: Container(
                         padding: EdgeInsets.symmetric(vertical: 19),
                         width: MediaQuery.sizeOf(context).width,
@@ -141,7 +167,9 @@ class ItemFormScreen extends StatelessWidget {
                         ),
                         child: Center(
                           child: Text(
-                            'Next',
+                            controller.selectedRecipe.value == null
+                                ? 'Next'
+                                : 'Update',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,

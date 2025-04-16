@@ -50,6 +50,33 @@ class RecipeService {
     }
   }
 
+  Future<RecipeModel> updateRecipe({
+    required int id,
+    required String title,
+    required String description,
+    required int categoryId,
+    File? image,
+  }) async {
+    try {
+      FormData formData = FormData.fromMap({
+        'title': title,
+        'description': description,
+        'category_id': categoryId.toString(),
+        if (image != null)
+          'image': await MultipartFile.fromFile(image.path,
+              filename: image.path.split('/').last),
+      });
+
+      final Response response = await DioClient.instance.post(
+        '/recipes/${id}/update',
+        data: formData,
+      );
+      return RecipeModel.fromJson(response.data['data']);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<List<CategoryModel>> getCategories() async {
     try {
       Response response = await DioClient.instance.get('/categories');

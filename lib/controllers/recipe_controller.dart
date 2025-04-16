@@ -19,9 +19,13 @@ class RecipeController extends GetxController {
   final categoryController = TextEditingController();
 
   final Rx<File?> imageFile = Rx<File?>(null);
+  Rx<RecipeModel?> selectedRecipe = Rx<RecipeModel?>(null);
 
   final ImagePicker picker = ImagePicker();
   final RecipeService _recipeService = RecipeService();
+
+  var currentPage = 1.obs;
+  var totalPage = 1.obs;
 
   @override
   void onInit() {
@@ -37,8 +41,12 @@ class RecipeController extends GetxController {
   }) async {
     try {
       isLoading.value = true;
+
       final result = await _recipeService.getAllRecipes(
-          page: page, title: title, categoryId: categoryId);
+        page: page,
+        title: title,
+        categoryId: categoryId,
+      );
       recipes.assignAll(result);
     } catch (e) {
       Get.snackbar('Error', 'Gagal memuat resep');
@@ -62,24 +70,69 @@ class RecipeController extends GetxController {
     if (title.isEmpty || description.isEmpty || image == null) {
       Get.snackbar('Error', 'Semua field harus diisi');
     }
+    isLoading.value = true;
 
     try {
-      isLoading.value = true;
       await _recipeService.createRecipe(
         title: title,
         description: description,
         categoryId: selectedCategoryId.value,
         imageFile: image!,
       );
-      Get.snackbar('Berhasil', "Resep berhasil ditambahkan");
 
+      resetForm();
       fetchRecipes();
       Get.offAll(() => HomeScreen());
+      Get.snackbar('Berhasil', "Resep berhasil ditambahkan");
     } catch (e) {
       Get.snackbar('Error', e.toString());
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void updateRecipe() async {
+    final title = titleController.text;
+    final description = descriptionController.text;
+    final image = imageFile.value;
+
+    if (title.isEmpty || description.isEmpty || selectedRecipe.value == null) {
+      Get.snackbar('Error', 'Semua field harus diisi');
+    }
+
+    isLoading.value = true;
+    try {
+      await _recipeService.updateRecipe(
+        id: selectedRecipe.value!.id,
+        title: title,
+        description: description,
+        categoryId: selectedCategoryId.value,
+        image: image,
+      );
+
+      Get.back();
+      Get.snackbar('Success', 'Resep berhasil diupdate');
+    } catch (e) {
+      Get.snackbar('Error', e.toString());
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void setRecipeForEdit(RecipeModel recipe) {
+    selectedRecipe.value = recipe;
+    titleController.text = recipe.title;
+    descriptionController.text = recipe.description;
+    selectedCategoryId.value = recipe.categoryId;
+    imageFile.value == null;
+  }
+
+  void resetForm() {
+    titleController.clear();
+    descriptionController.clear();
+    selectedCategoryId.value = categories.isNotEmpty ? categories.first.id : 1;
+    imageFile.value = null;
+    selectedRecipe.value = null;
   }
 
   Future<void> fetchCategories() async {

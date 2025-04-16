@@ -11,7 +11,7 @@ class RecipeCard extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 24),
       child: Container(
         width: MediaQuery.sizeOf(context).width,
-        height: 290,
+        height: 300,
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             color: Color(0xffFFFFFF),
@@ -28,36 +28,62 @@ class RecipeCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.network(
-                recipe.image,
-                fit: BoxFit.cover,
-                width: MediaQuery.sizeOf(context).width,
-                height: 237,
+              child: Hero(
+                tag: 'recipe-image-${recipe.id}',
+                child: Image.network(
+                  recipe.image,
+                  fit: BoxFit.cover,
+                  width: MediaQuery.sizeOf(context).width,
+                  height: 237,
+                ),
               ),
             ),
             SizedBox(height: 2),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                recipe.title,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                  color: Color(0xff535353),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          recipe.title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            color: Color(0xff535353),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          recipe.description,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            fontSize: 12,
+                            color: Color(0xff6D6D6D),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                recipe.description,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.w400,
-                  fontSize: 12,
-                  color: Color(0xff6D6D6D),
+                Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: Text(
+                    recipe.category.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.black,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
             SizedBox(height: 6),
           ],
