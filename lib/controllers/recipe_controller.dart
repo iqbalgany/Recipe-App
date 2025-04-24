@@ -10,57 +10,71 @@ import 'package:recipe_app/services/recipe_service.dart';
 import 'package:recipe_app/views/home_screen.dart';
 
 class RecipeController extends GetxController {
-  var isLoading = true.obs;
-  var recipes = <RecipeModel>[].obs;
-  var categories = <CategoryModel>[].obs;
-  final selectedCategoryId = Rx<int?>(null);
-  RxString searchText = ''.obs;
+  bool isLoading = false;
+  bool isEndOfList = false;
+  List<RecipeModel> recipes = [];
+  List<CategoryModel> categories = [];
+  int? selectedCategoryId;
+  String searchText = '';
   final ScrollController scrollController = ScrollController();
 
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
   final categoryController = TextEditingController();
 
-  final Rx<File?> imageFile = Rx<File?>(null);
-  Rx<RecipeModel?> selectedRecipe = Rx<RecipeModel?>(null);
+  File? imageFile;
+  RecipeModel? selectedRecipe;
 
   final ImagePicker picker = ImagePicker();
   final RecipeService _recipeService = RecipeService();
 
   final Debouncer debouncer = Debouncer();
+  var currentPage = 1;
+  var lastPage = 1;
 
   void fetchRecipes({
-    int page = 1,
     String? title,
     int? categoryId,
     bool isLoadMore = false,
   }) async {
-    isLoading.value = true;
     try {
-      final result = await _recipeService.getAllRecipes(
-        page: page,
-        title: title ?? searchText.value,
-        categoryId: categoryId ?? selectedCategoryId.value,
-      );
+      isLoading = true;
 
       if (isLoadMore) {
-        recipes.addAll(result);
-        page++;
+        if (currentPage < lastPage) {
+          currentPage++;
+        }
       } else {
-        recipes.assignAll(result);
-        page = 2;
+        currentPage = 1;
+        recipes.clear();
       }
 
+      final result = await _recipeService.getAllRecipes(
+        page: currentPage,
+        title: searchText.isEmpty ? null : searchText,
+        categoryId: selectedCategoryId,
+      );
+
+      final List<RecipeModel> fetchedRecipes = result['recipes'];
+      lastPage = result['last_page'];
+
+      if (fetchedRecipes.isEmpty && !isLoadMore) {
+        recipes.clear();
+      } else {
+        recipes.addAll(fetchedRecipes);
+      }
+
+      isEndOfList = currentPage >= lastPage;
       update();
     } catch (e) {
       Get.snackbar('Error', 'Gagal memuat resep');
     } finally {
-      isLoading.value = false;
+      isLoading = false;
     }
   }
 
   void onSearchChanged(String value) {
-    searchText.value = value;
+    searchText = value;
     debouncer.debounce(
         duration: Duration(milliseconds: 500),
         onDebounce: () => fetchRecipes(title: value));
@@ -68,18 +82,18 @@ class RecipeController extends GetxController {
   }
 
   void onCategorySelected(int? id) {
-    selectedCategoryId.value = id!;
+    selectedCategoryId = id!;
     update();
     fetchRecipes(
-      title: searchText.value,
+      title: searchText,
       categoryId: id,
     );
     update();
   }
 
   void clearSelectedCategory() {
-    selectedCategoryId.value = null;
-    searchText.value = '';
+    selectedCategoryId = null;
+    searchText = '';
     titleController.clear();
     fetchRecipes();
     update();
@@ -88,40 +102,41 @@ class RecipeController extends GetxController {
   Future<void> pickImage() async {
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      imageFile.value = File(picked.path);
+      imageFile = File(picked.path);
+      update();
     }
   }
 
   Future<void> createRecipe() async {
     final title = titleController.text;
     final description = descriptionController.text;
-    final image = imageFile.value;
+    final image = imageFile;
 
     if (title.isEmpty || description.isEmpty || image == null) {
       Get.snackbar('Error', 'Semua field harus diisi');
     }
-    isLoading.value = true;
+    isLoading = true;
 
     try {
       await _recipeService.createRecipe(
         title: title,
         description: description,
-        categoryId: selectedCategoryId.value!,
+        categoryId: selectedCategoryId!,
         imageFile: image!,
       );
       update();
 
-      resetForm();
       fetchRecipes(
-        title: searchText.value,
-        categoryId: selectedCategoryId.value,
+        title: searchText,
+        categoryId: selectedCategoryId,
       );
       Get.offAll(() => HomeScreen());
+      resetForm();
       Get.snackbar('Berhasil', "Resep berhasil ditambahkan");
     } catch (e) {
       Get.snackbar('Error', e.toString());
     } finally {
-      isLoading.value = false;
+      isLoading = false;
     }
   }
 
@@ -129,50 +144,56 @@ class RecipeController extends GetxController {
     final title = titleController.text;
     final description = descriptionController.text;
 
-    if (title.isEmpty || description.isEmpty || selectedRecipe.value == null) {
+    if (title.isEmpty || description.isEmpty || selectedRecipe == null) {
       Get.snackbar('Error', 'Semua field harus diisi');
       return;
     }
 
-    isLoading.value = true;
+    isLoading = true;
     try {
       await _recipeService.updateRecipe(
-        id: selectedRecipe.value!.id,
+        id: selectedRecipe!.id,
         title: title,
         description: description,
-        categoryId: selectedCategoryId.value!,
-        image: imageFile.value,
+        categoryId: selectedCategoryId!,
+        image: imageFile,
       );
       update();
 
       resetForm();
       fetchRecipes(
-        title: searchText.value,
-        categoryId: selectedCategoryId.value,
+        title: searchText,
+        categoryId: selectedCategoryId,
       );
       Get.offAll(() => HomeScreen());
       Get.snackbar('Success', 'Resep berhasil diupdate');
     } catch (e) {
       Get.snackbar('Error', e.toString());
     } finally {
-      isLoading.value = false;
+      isLoading = false;
     }
   }
 
   void setRecipeForEdit(RecipeModel recipe) {
-    selectedRecipe.value = recipe;
+    selectedRecipe = recipe;
     titleController.text = recipe.title;
     descriptionController.text = recipe.description;
-    selectedCategoryId.value = recipe.categoryId;
-    imageFile.value = null;
+    selectedCategoryId = recipe.categoryId;
+    if (recipe.image.startsWith('http') || recipe.image.startsWith('https')) {
+      imageFile = null;
+    } else {
+      imageFile = File(recipe.image);
+    }
+    update();
   }
 
   void resetForm() {
     titleController.clear();
     descriptionController.clear();
-
-    imageFile.value = null;
-    selectedRecipe.value = null;
+    selectedCategoryId = null;
+    imageFile = null;
+    selectedRecipe = null;
+    update();
   }
 
   Future<void> fetchCategories() async {
@@ -180,7 +201,7 @@ class RecipeController extends GetxController {
       final result = await _recipeService.getCategories();
       categories.assignAll(result);
       if (result.isNotEmpty) {
-        selectedCategoryId.value = null;
+        selectedCategoryId = null;
         update();
       }
     } catch (e) {

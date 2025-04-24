@@ -15,6 +15,15 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<RecipeController>(
       initState: (_) {
+        controller.scrollController.addListener(() {
+          if (controller.scrollController.position.pixels ==
+              controller.scrollController.position.maxScrollExtent) {
+            if (controller.currentPage < controller.lastPage &&
+                !controller.isLoading) {
+              controller.fetchRecipes(isLoadMore: true);
+            }
+          }
+        });
         controller.fetchRecipes();
         controller.fetchCategories();
       },
@@ -85,7 +94,7 @@ class HomeScreen extends StatelessWidget {
                     GestureDetector(
                       onTap: () => controller.clearSelectedCategory(),
                       child: Container(
-                        width: 116,
+                        width: 60,
                         height: 35,
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey),
@@ -118,7 +127,7 @@ class HomeScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     var category = controller.categories[index];
                     var isSelected =
-                        controller.selectedCategoryId.value == category.id;
+                        controller.selectedCategoryId == category.id;
                     return GestureDetector(
                       onTap: () => controller.onCategorySelected(category.id),
                       child: Container(

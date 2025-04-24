@@ -6,10 +6,12 @@ class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final int maxLines;
   final double height;
+  final EdgeInsetsGeometry contentPadding;
   const CustomTextField({
     super.key,
     required this.label,
     required this.hint,
+    required this.contentPadding,
     required this.controller,
     this.maxLines = 1,
     this.height = 56,
@@ -48,7 +50,7 @@ class CustomTextField extends StatelessWidget {
                 color: Color(0xff9FA5C0),
               ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 24),
+              contentPadding: contentPadding,
             ),
           ),
         ),

@@ -6,8 +6,8 @@ import 'package:recipe_app/models/category_model.dart';
 import 'package:recipe_app/models/recipe_model.dart';
 
 class RecipeService {
-  Future<List<RecipeModel>> getAllRecipes({
-    required int page,
+  Future<Map<String, dynamic>> getAllRecipes({
+    int? page,
     String? title,
     int? categoryId,
   }) async {
@@ -19,8 +19,18 @@ class RecipeService {
         'category_id': categoryId?.toString(),
       });
 
-      final List data = response.data['data']['data'];
-      return data.map((json) => RecipeModel.fromJson(json)).toList();
+      final Map<String, dynamic> result = response.data;
+
+      final List recipesData = result['data']['data'];
+      final int lastPage = result['data']['last_page'];
+
+      List<RecipeModel> recipes =
+          recipesData.map((json) => RecipeModel.fromJson(json)).toList();
+
+      return {
+        'recipes': recipes,
+        'last_page': lastPage,
+      };
     } catch (e) {
       rethrow;
     }
