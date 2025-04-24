@@ -26,7 +26,9 @@ class RecipeModel {
         title: json["title"],
         description: json["description"],
         image: json["image"],
-        categoryId: json["category_id"],
+        categoryId: json["category_id"] is String
+            ? int.parse(json["category_id"])
+            : json["category_id"],
         createdAt: DateTime.parse(json["created_at"]),
         updatedAt: DateTime.parse(json["updated_at"]),
         category: CategoryModel.fromJson(json["category"]),

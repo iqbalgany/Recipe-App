@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_debouncer/flutter_debouncer.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:recipe_app/models/category_model.dart';
@@ -12,7 +13,9 @@ class RecipeController extends GetxController {
   var isLoading = true.obs;
   var recipes = <RecipeModel>[].obs;
   var categories = <CategoryModel>[].obs;
-  var selectedCategoryId = 1.obs;
+  final selectedCategoryId = Rx<int?>(null);
+  RxString searchText = ''.obs;
+  final ScrollController scrollController = ScrollController();
 
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -24,35 +27,62 @@ class RecipeController extends GetxController {
   final ImagePicker picker = ImagePicker();
   final RecipeService _recipeService = RecipeService();
 
-  var currentPage = 1.obs;
-  var totalPage = 1.obs;
-
-  @override
-  void onInit() {
-    fetchRecipes();
-    fetchCategories();
-    super.onInit();
-  }
+  final Debouncer debouncer = Debouncer();
 
   void fetchRecipes({
     int page = 1,
     String? title,
     int? categoryId,
+    bool isLoadMore = false,
   }) async {
+    isLoading.value = true;
     try {
-      isLoading.value = true;
-
       final result = await _recipeService.getAllRecipes(
         page: page,
-        title: title,
-        categoryId: categoryId,
+        title: title ?? searchText.value,
+        categoryId: categoryId ?? selectedCategoryId.value,
       );
-      recipes.assignAll(result);
+
+      if (isLoadMore) {
+        recipes.addAll(result);
+        page++;
+      } else {
+        recipes.assignAll(result);
+        page = 2;
+      }
+
+      update();
     } catch (e) {
       Get.snackbar('Error', 'Gagal memuat resep');
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void onSearchChanged(String value) {
+    searchText.value = value;
+    debouncer.debounce(
+        duration: Duration(milliseconds: 500),
+        onDebounce: () => fetchRecipes(title: value));
+    update();
+  }
+
+  void onCategorySelected(int? id) {
+    selectedCategoryId.value = id!;
+    update();
+    fetchRecipes(
+      title: searchText.value,
+      categoryId: id,
+    );
+    update();
+  }
+
+  void clearSelectedCategory() {
+    selectedCategoryId.value = null;
+    searchText.value = '';
+    titleController.clear();
+    fetchRecipes();
+    update();
   }
 
   Future<void> pickImage() async {
@@ -76,12 +106,16 @@ class RecipeController extends GetxController {
       await _recipeService.createRecipe(
         title: title,
         description: description,
-        categoryId: selectedCategoryId.value,
+        categoryId: selectedCategoryId.value!,
         imageFile: image!,
       );
+      update();
 
       resetForm();
-      fetchRecipes();
+      fetchRecipes(
+        title: searchText.value,
+        categoryId: selectedCategoryId.value,
+      );
       Get.offAll(() => HomeScreen());
       Get.snackbar('Berhasil', "Resep berhasil ditambahkan");
     } catch (e) {
@@ -94,10 +128,10 @@ class RecipeController extends GetxController {
   void updateRecipe() async {
     final title = titleController.text;
     final description = descriptionController.text;
-    final image = imageFile.value;
 
     if (title.isEmpty || description.isEmpty || selectedRecipe.value == null) {
       Get.snackbar('Error', 'Semua field harus diisi');
+      return;
     }
 
     isLoading.value = true;
@@ -106,11 +140,17 @@ class RecipeController extends GetxController {
         id: selectedRecipe.value!.id,
         title: title,
         description: description,
-        categoryId: selectedCategoryId.value,
-        image: image,
+        categoryId: selectedCategoryId.value!,
+        image: imageFile.value,
       );
+      update();
 
-      Get.back();
+      resetForm();
+      fetchRecipes(
+        title: searchText.value,
+        categoryId: selectedCategoryId.value,
+      );
+      Get.offAll(() => HomeScreen());
       Get.snackbar('Success', 'Resep berhasil diupdate');
     } catch (e) {
       Get.snackbar('Error', e.toString());
@@ -124,13 +164,13 @@ class RecipeController extends GetxController {
     titleController.text = recipe.title;
     descriptionController.text = recipe.description;
     selectedCategoryId.value = recipe.categoryId;
-    imageFile.value == null;
+    imageFile.value = null;
   }
 
   void resetForm() {
     titleController.clear();
     descriptionController.clear();
-    selectedCategoryId.value = categories.isNotEmpty ? categories.first.id : 1;
+
     imageFile.value = null;
     selectedRecipe.value = null;
   }
@@ -140,7 +180,8 @@ class RecipeController extends GetxController {
       final result = await _recipeService.getCategories();
       categories.assignAll(result);
       if (result.isNotEmpty) {
-        selectedCategoryId.value = result.first.id;
+        selectedCategoryId.value = null;
+        update();
       }
     } catch (e) {
       Get.snackbar('Error', 'Gagal memuat kategori');

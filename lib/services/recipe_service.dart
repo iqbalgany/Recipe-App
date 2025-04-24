@@ -7,7 +7,7 @@ import 'package:recipe_app/models/recipe_model.dart';
 
 class RecipeService {
   Future<List<RecipeModel>> getAllRecipes({
-    int page = 1,
+    required int page,
     String? title,
     int? categoryId,
   }) async {
@@ -15,8 +15,8 @@ class RecipeService {
       final Response response =
           await DioClient.instance.get('/recipes', queryParameters: {
         'page': page,
-        'title': title ?? '',
-        'category_id': categoryId?.toString() ?? '',
+        'title': title,
+        'category_id': categoryId?.toString(),
       });
 
       final List data = response.data['data']['data'];

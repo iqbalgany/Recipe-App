@@ -3,23 +3,10 @@ import 'package:get/get.dart';
 import 'package:recipe_app/controllers/recipe_controller.dart';
 import 'package:recipe_app/widgets/custom_text_field.dart';
 
-class ItemFormScreen extends StatefulWidget {
+class ItemFormScreen extends StatelessWidget {
   ItemFormScreen({super.key});
 
-  @override
-  State<ItemFormScreen> createState() => _ItemFormScreenState();
-}
-
-class _ItemFormScreenState extends State<ItemFormScreen> {
   final RecipeController controller = Get.put(RecipeController());
-
-  @override
-  void initState() {
-    super.initState();
-    if (controller.selectedRecipe.value == null) {
-      controller.resetForm();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,65 +20,59 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                   children: [
                     SizedBox(height: 90),
                     GestureDetector(
-                      onTap: controller.pickImage,
-                      child: Obx(
-                        () {
-                          final image = controller.imageFile.value;
-                          final imageUrl =
-                              controller.selectedRecipe.value!.image;
-                          return Container(
-                            width: MediaQuery.sizeOf(context).width,
-                            height: 250,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Color(0xffD0DBEA),
+                        onTap: controller.pickImage,
+                        child: Obx(
+                          () {
+                            final image = controller.imageFile.value;
+                            return Container(
+                              width: MediaQuery.sizeOf(context).width,
+                              height: 250,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Color(0xffD0DBEA),
+                                ),
+                                image: image != null
+                                    ? DecorationImage(
+                                        image: FileImage(image),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
-                              image: image != null
-                                  ? DecorationImage(
-                                      image: FileImage(image),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : (imageUrl.isNotEmpty
-                                      ? DecorationImage(
-                                          image: NetworkImage(imageUrl),
-                                          fit: BoxFit.cover)
-                                      : null),
-                            ),
-                            child: image == null && imageUrl.isEmpty
-                                ? Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.image_rounded,
-                                        size: 53,
-                                        color: Color(0xff9FA5C0),
-                                      ),
-                                      SizedBox(height: 21.33),
-                                      Text(
-                                        'Add Cover Photo',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                          color: Color(0xff3E5481),
-                                        ),
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        '(up to 12 Mb)',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 12,
+                              child: image == null
+                                  ? Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.image_rounded,
+                                          size: 53,
                                           color: Color(0xff9FA5C0),
                                         ),
-                                      ),
-                                    ],
-                                  )
-                                : null,
-                          );
-                        },
-                      ),
-                    ),
+                                        SizedBox(height: 21.33),
+                                        Text(
+                                          'Add Cover Photo',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            color: Color(0xff3E5481),
+                                          ),
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          '(up to 12 Mb)',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 12,
+                                            color: Color(0xff9FA5C0),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : null,
+                            );
+                          },
+                        )),
                     SizedBox(height: 24),
                     CustomTextField(
                         label: 'Food Name',
@@ -119,7 +100,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                             ),
                           ),
                           child: DropdownButtonHideUnderline(
-                            child: DropdownButton(
+                            child: DropdownButton<int>(
                               padding: EdgeInsets.symmetric(horizontal: 24),
                               isExpanded: true,
                               items: controller.categories.map(
@@ -167,9 +148,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                         ),
                         child: Center(
                           child: Text(
-                            controller.selectedRecipe.value == null
-                                ? 'Next'
-                                : 'Update',
+                            'Next',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
